@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { Mail, Lock, User, AlertCircle } from 'lucide-react'
-
+//older version of lucide-react doesn't have AlertCircle, so we can use XCircle instead
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
