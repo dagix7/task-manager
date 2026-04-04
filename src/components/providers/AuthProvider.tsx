@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
     const getSession = async () => {
@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [supabase])
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
@@ -68,25 +68,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     })
-    
+
     if (error) throw error
-    
+
     // Create profile in database
     if (data.user) {
-      await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .insert([
-          { 
-            id: data.user.id, 
+          {
+            id: data.user.id,
             email: email,
-            full_name: fullName 
+            full_name: fullName
           }
         ])
+
+      // If profile creation fails, delete the auth user and throw error
+      if (profileError) {
+        await supabase.auth.admin.deleteUser(data.user.id)
+        throw new Error('Failed to create user profile: ' + profileError.message)
+      }
     }
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+      throw error
+    }
   }
 
   return (
