@@ -5,12 +5,37 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/providers/AuthProvider'
 import { Mail, Lock, User, AlertCircle } from 'lucide-react'
-//older version of lucide-react doesn't have AlertCircle, so we can use XCircle instead
+
+// Validation functions
+const validateEmail = (email: string): string | null => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!email) return 'Email is required'
+  if (!emailRegex.test(email)) return 'Please enter a valid email address'
+  return null
+}
+
+const validatePassword = (password: string): string | null => {
+  if (!password) return 'Password is required'
+  if (password.length < 8) return 'Password must be at least 8 characters'
+  if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter'
+  if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter'
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number'
+  return null
+}
+
+const validateFullName = (name: string): string | null => {
+  if (!name) return 'Full name is required'
+  if (name.trim().length < 2) return 'Full name must be at least 2 characters'
+  if (name.trim().length > 50) return 'Full name must be less than 50 characters'
+  return null
+}
+
 export default function SignupPage() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({})
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { signUp } = useAuth()
@@ -18,6 +43,22 @@ export default function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    setFieldErrors({})
+
+    // Validate all fields
+    const nameError = validateFullName(fullName)
+    const emailError = validateEmail(email)
+    const passwordError = validatePassword(password)
+
+    if (nameError || emailError || passwordError) {
+      setFieldErrors({
+        fullName: nameError || '',
+        email: emailError || '',
+        password: passwordError || '',
+      })
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -58,11 +99,16 @@ export default function SignupPage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`pl-10 w-full px-4 py-3 border ${
+                    fieldErrors.fullName ? 'border-red-500' : 'border-gray-300'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   placeholder="John Doe"
                   required
                 />
               </div>
+              {fieldErrors.fullName && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.fullName}</p>
+              )}
             </div>
 
             <div>
@@ -75,11 +121,16 @@ export default function SignupPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`pl-10 w-full px-4 py-3 border ${
+                    fieldErrors.email ? 'border-red-500' : 'border-gray-300'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   placeholder="you@example.com"
                   required
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+              )}
             </div>
 
             <div>
@@ -92,15 +143,20 @@ export default function SignupPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className={`pl-10 w-full px-4 py-3 border ${
+                    fieldErrors.password ? 'border-red-500' : 'border-gray-300'
+                  } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
                   placeholder="••••••••"
                   required
-                  minLength={6}
                 />
               </div>
-              <p className="mt-2 text-sm text-gray-500">
-                Must be at least 6 characters
-              </p>
+              {fieldErrors.password ? (
+                <p className="mt-2 text-sm text-red-600">{fieldErrors.password}</p>
+              ) : (
+                <p className="mt-2 text-sm text-gray-500">
+                  Must be 8+ characters with uppercase, lowercase, and number
+                </p>
+              )}
             </div>
 
             <button
